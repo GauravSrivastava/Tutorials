@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GraphQL Test</title>
+</head>
+<body>
+    <h1>GraphQL Endpoint Test</h1>
+    <button onclick="testGraphQL()">Test GraphQL</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testGraphQL() {
+            const query = `
+                query {
+                    books(limit: 5) {
+                        id
+                        title
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

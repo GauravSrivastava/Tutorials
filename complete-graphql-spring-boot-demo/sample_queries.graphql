@@ -1,0 +1,390 @@
+# GraphQL Sample Queries and Mutations
+# This file contains examples demonstrating various GraphQL features
+
+# ==============================================================================
+# 1. BASIC QUERIES
+# ==============================================================================
+
+# Simple query to get all books
+query GetAllBooks {
+  books {
+    id
+    title
+    price
+    displayPrice
+  }
+}
+
+# Query with variables and filtering
+query GetBooksWithFilter($limit: Int, $filter: BookFilter) {
+  books(limit: $limit, filter: $filter) {
+    id
+    title
+    isbn
+    price
+    genre
+    publishedDate
+    author {
+      fullName
+      email
+    }
+    publisher {
+      name
+    }
+  }
+}
+
+# Variables for the above query:
+# {
+#   "limit": 5,
+#   "filter": {
+#     "genre": "TECHNOLOGY",
+#     "minPrice": 20.00
+#   }
+# }
+
+# ==============================================================================
+# 2. FRAGMENTS - Reusable field selections
+# ==============================================================================
+
+# Define fragments for reusable field sets
+fragment BookDetails on Book {
+  id
+  title
+  isbn
+  price
+  displayPrice
+  genre
+  publishedDate
+  ageInYears
+  rating
+  tags
+}
+
+fragment AuthorInfo on Author {
+  id
+  firstName
+  lastName
+  fullName
+  email
+  age
+  biography
+}
+
+fragment PublisherInfo on Publisher {
+  id
+  name
+  address
+  website
+  bookCount
+}
+
+# Query using fragments
+query GetBookWithFragments($id: ID!) {
+  bookById(id: $id) {
+    ...BookDetails
+    author {
+      ...AuthorInfo
+    }
+    publisher {
+      ...PublisherInfo
+    }
+  }
+}
+
+# Complex query using multiple fragments
+query GetBooksAndAuthorsWithFragments {
+  books(limit: 3) {
+    ...BookDetails
+    author {
+      ...AuthorInfo
+      books {
+        id
+        title
+        genre
+      }
+    }
+  }
+
+  authors(limit: 2) {
+    ...AuthorInfo
+    books {
+      ...BookDetails
+    }
+  }
+}
+
+# ==============================================================================
+# 3. SEARCH QUERIES (Union Types)
+# ==============================================================================
+
+# Search across different entity types (demonstrates union types)
+query SearchEverything($query: String!) {
+  searchBooks(query: $query) {
+    ... on Book {
+      __typename
+      id
+      title
+      author {
+        fullName
+      }
+    }
+    ... on Author {
+      __typename
+      id
+      fullName
+      email
+    }
+    ... on Publisher {
+      __typename
+      id
+      name
+      address
+    }
+  }
+}
+
+# ==============================================================================
+# 4. MUTATIONS
+# ==============================================================================
+
+# Create a new book
+mutation CreateBook($input: BookInput!) {
+  createBook(input: $input) {
+    success
+    book {
+      ...BookDetails
+      author {
+        ...AuthorInfo
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# Variables for creating a book:
+# {
+#   "input": {
+#     "title": "Advanced GraphQL",
+#     "isbn": "978-1234567999",
+#     "price": 59.99,
+#     "publishedDate": "2024-01-15T10:00:00",
+#     "authorId": "1",
+#     "publisherId": "1",
+#     "genre": "TECHNOLOGY",
+#     "description": "Deep dive into GraphQL advanced concepts"
+#   }
+# }
+
+# Create a new author
+mutation CreateAuthor($input: AuthorInput!) {
+  createAuthor(input: $input) {
+    success
+    author {
+      ...AuthorInfo
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# Variables for creating an author:
+# {
+#   "input": {
+#     "firstName": "Alice",
+#     "lastName": "Cooper",
+#     "email": "alice.cooper@example.com",
+#     "birthDate": "1990-05-20T08:00:00",
+#     "biography": "Emerging technology writer"
+#   }
+# }
+
+# Update an existing book
+mutation UpdateBook($id: ID!, $input: BookInput!) {
+  updateBook(id: $id, input: $input) {
+    success
+    book {
+      ...BookDetails
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# Delete a book
+mutation DeleteBook($id: ID!) {
+  deleteBook(id: $id) {
+    id
+    success
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# Batch create multiple books
+mutation CreateMultipleBooks($input: [BookInput!]!) {
+  createBooks(input: $input) {
+    success
+    book {
+      id
+      title
+      author {
+        fullName
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# ==============================================================================
+# 5. COMPLEX QUERIES WITH NESTED RELATIONSHIPS
+# ==============================================================================
+
+# Get authors with their books and publishers
+query GetAuthorsWithBooks {
+  authors {
+    ...AuthorInfo
+    books {
+      ...BookDetails
+      publisher {
+        ...PublisherInfo
+      }
+    }
+  }
+}
+
+# Get publishers with their books and authors
+query GetPublishersWithBooks {
+  publishers {
+    ...PublisherInfo
+    books {
+      ...BookDetails
+      author {
+        firstName
+        lastName
+        fullName
+      }
+    }
+  }
+}
+
+# ==============================================================================
+# 6. VERSIONING EXAMPLES
+# ==============================================================================
+
+# Query using deprecated field (for backward compatibility)
+query UsingDeprecatedField {
+  authors {
+    id
+    name  # This field is deprecated, use firstName and lastName instead
+    firstName
+    lastName
+    fullName
+  }
+}
+
+# Query using new fields added in version 2
+query UsingNewFields {
+  books {
+    id
+    title
+    tags      # New field added in v2
+    rating    # New field added in v2
+    displayPrice
+  }
+}
+
+# Using the deprecated allBooks query
+query UsingDeprecatedQuery {
+  allBooks {  # This query is deprecated, use books instead
+    id
+    title
+  }
+}
+
+# ==============================================================================
+# 7. OPERATION NAMES AND VARIABLES EXAMPLES
+# ==============================================================================
+
+# Named operation with multiple variables
+query GetFilteredBooks(
+  $limit: Int = 10,
+  $offset: Int = 0,
+  $genre: Genre,
+  $minPrice: BigDecimal,
+  $searchQuery: String
+) {
+  # Main books query with filtering
+  books(
+    limit: $limit, 
+    offset: $offset, 
+    filter: {
+      genre: $genre,
+      minPrice: $minPrice
+    }
+  ) {
+    ...BookDetails
+  }
+
+  # Search books if query provided
+  searchResults: searchBooks(query: $searchQuery) @include(if: $searchQuery) {
+    ... on Book {
+      id
+      title
+      author {
+        fullName
+      }
+    }
+  }
+}
+
+# ==============================================================================
+# 8. INTROSPECTION QUERIES
+# ==============================================================================
+
+# Get schema information
+query GetSchemaTypes {
+  __schema {
+    types {
+      name
+      kind
+      description
+    }
+  }
+}
+
+# Get information about a specific type
+query GetBookTypeInfo {
+  __type(name: "Book") {
+    name
+    kind
+    description
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+      description
+      isDeprecated
+      deprecationReason
+    }
+  }
+}

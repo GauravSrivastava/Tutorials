@@ -1,0 +1,178 @@
+# Custom Scalars
+scalar DateTime
+scalar BigDecimal
+
+# Types showcasing different GraphQL features
+type Query {
+    # Query operations with variables and arguments
+    books(limit: Int = 10, offset: Int = 0, filter: BookFilter): [Book!]!
+    bookById(id: ID!): Book
+    booksByAuthor(authorId: ID!): [Book!]!
+
+    # Authors queries
+    authors(limit: Int = 10): [Author!]!
+    authorById(id: ID!): Author
+
+    # Publishers queries
+    publishers: [Publisher!]!
+    publisherById(id: ID!): Publisher
+
+    # Search operation with fragments
+    searchBooks(query: String!): [SearchResult!]!
+
+    # Version demonstration - deprecated field
+    allBooks: [Book!]! @deprecated(reason: "Use books query instead")
+}
+
+type Mutation {
+    # Book mutations
+    createBook(input: BookInput!): BookPayload!
+    updateBook(id: ID!, input: BookInput!): BookPayload!
+    deleteBook(id: ID!): DeletePayload!
+
+    # Author mutations
+    createAuthor(input: AuthorInput!): AuthorPayload!
+    updateAuthor(id: ID!, input: AuthorInput!): AuthorPayload!
+
+    # Batch operations
+    createBooks(input: [BookInput!]!): [BookPayload!]!
+}
+
+# Input Types
+input BookInput {
+    title: String!
+    isbn: String!
+    price: BigDecimal!
+    publishedDate: DateTime!
+    authorId: ID!
+    publisherId: ID!
+    genre: Genre!
+    description: String
+}
+
+input AuthorInput {
+    firstName: String!
+    lastName: String!
+    email: String!
+    birthDate: DateTime
+    biography: String
+}
+
+input BookFilter {
+    title: String
+    author: String
+    genre: Genre
+    minPrice: BigDecimal
+    maxPrice: BigDecimal
+    publishedAfter: DateTime
+}
+
+# Object Types
+type Book {
+    id: ID!
+    title: String!
+    isbn: String!
+    price: BigDecimal!
+    publishedDate: DateTime!
+    genre: Genre!
+    description: String
+
+    # Relationships - resolved by DataFetchers
+    author: Author!
+    publisher: Publisher!
+
+    # Computed fields
+    displayPrice: String!
+    ageInYears: Int!
+
+    # Versioning example - new field added
+    tags: [String!]! # Added in v2
+    rating: Float # Added in v2
+}
+
+type Author {
+    id: ID!
+    firstName: String!
+    lastName: String!
+    email: String!
+    birthDate: DateTime
+    biography: String
+
+    # Computed field
+    fullName: String!
+    age: Int
+
+    # Relationships
+    books: [Book!]!
+
+    # Deprecated field - versioning example
+    name: String @deprecated(reason: "Use firstName and lastName instead")
+}
+
+type Publisher {
+    id: ID!
+    name: String!
+    address: String!
+    website: String
+
+    # Relationships
+    books: [Book!]!
+
+    # Computed fields
+    bookCount: Int!
+}
+
+# Union type for search results
+union SearchResult = Book | Author | Publisher
+
+# Enum type
+enum Genre {
+    FICTION
+    NON_FICTION
+    SCIENCE_FICTION
+    MYSTERY
+    ROMANCE
+    THRILLER
+    BIOGRAPHY
+    HISTORY
+    TECHNOLOGY
+}
+
+# Payload types for mutations
+type BookPayload {
+    book: Book
+    errors: [Error!]!
+    success: Boolean!
+}
+
+type AuthorPayload {
+    author: Author
+    errors: [Error!]!
+    success: Boolean!
+}
+
+type DeletePayload {
+    id: ID
+    success: Boolean!
+    errors: [Error!]!
+}
+
+# Error type
+type Error {
+    field: String!
+    message: String!
+    code: String!
+}
+
+# Interface example (for versioning)
+interface Node {
+    id: ID!
+}
+
+# Implementing interface
+type BookVersion implements Node {
+    id: ID!
+    version: String!
+    book: Book!
+    createdAt: DateTime!
+}
